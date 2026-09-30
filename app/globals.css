@@ -1,26 +1,184 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-from: #9db0ee;
+  --bg-to: #d3deea;
+  --glass: rgba(255, 255, 255, 0.40);
+  --glass-strong: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.70);
+  --glass-card-bg: rgba(255, 255, 255, 0.38);
+  --ink: #0c0c10;
+  --ink-muted: #5d6785;
+  --accent-blue: #5b7cfa;
+  --accent-sky: #a9cdff;
+  --accent-violet: #7b6df2;
+  --success: #3fbf8f;
+  --warn: #f5a524;
+  --danger: #e5484d;
+
+  --hero-gradient: linear-gradient(160deg, #5b7cfa 0%, #7fa6ff 55%, #c6dcff 100%);
+  --bar-active: linear-gradient(180deg, #7b6df2 0%, #a9cdff 100%);
+  --bubble-center: radial-gradient(circle at 30% 25%, #9a8cff, #5b5bea 70%);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --bg-from: #0e1324;
+  --bg-to: #1a2140;
+  --glass: rgba(255, 255, 255, 0.08);
+  --glass-strong: rgba(255, 255, 255, 0.14);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-card-bg: rgba(255, 255, 255, 0.06);
+  --ink: #f3f5ff;
+  --ink-muted: #8e9ab8;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(135deg, var(--bg-from), var(--bg-to));
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: var(--font-manrope), var(--font-inter), system-ui, sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Glassmorphism System */
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 28px;
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow: 0 20px 50px -20px rgba(60, 80, 160, 0.28);
+}
+
+.glass-tile {
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-pill {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--ink);
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(12, 12, 16, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(12, 12, 16, 0.28);
+  opacity: 0.96;
+}
+
+.btn-ghost {
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  padding: 12px 22px;
+  color: var(--ink);
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.85);
+  transform: translateY(-1px);
+}
+
+.pill {
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill-pending {
+  background: var(--accent-blue);
+  color: #ffffff;
+}
+
+.pill-done {
+  background: var(--glass-strong);
+  color: var(--ink-muted);
+  border: 1px solid var(--glass-border);
+}
+
+.pill-verified {
+  background: rgba(63, 191, 143, 0.18);
+  color: #17835b;
+  border: 1px solid rgba(63, 191, 143, 0.35);
+}
+
+.pill-warning {
+  background: rgba(245, 165, 36, 0.18);
+  color: #b86e08;
+  border: 1px solid rgba(245, 165, 36, 0.35);
+}
+
+.hero-gradient-card {
+  background: var(--hero-gradient);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 20px 50px -15px rgba(91, 124, 250, 0.45);
+  color: #ffffff;
+}
+
+/* Three Liquid Connected Bubbles */
+.liquid-bubble {
+  position: relative;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.liquid-bubble:hover {
+  transform: scale(1.05);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(12, 12, 16, 0.16);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(12, 12, 16, 0.28);
 }
