@@ -469,6 +469,11 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### 7. Production Deployment (Render / Vercel)
+
+- **Render**: ImpactLens includes a pre-configured [render.yaml](render.yaml) blueprint. Follow the detailed [Deployment Guide](DEPLOYMENT.md) for 1-click Render blueprint setup or manual web service creation.
+- **Vercel**: Can also be deployed directly by importing the repository into [Vercel](https://vercel.com/) and configuring environment variables.
+
 ---
 
 ## 🔌 API Endpoint Documentation
