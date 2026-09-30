@@ -33,36 +33,36 @@ ImpactLens leverages **Cloudinary** as an immutable, zero-overwrite media ledger
 ```mermaid
 flowchart TD
     subgraph Client["Field Web Client (Browser / Mobile)"]
-        A[Field Worker / Auditor] -->|1. Drop Photos / Videos| B[Client Upload Zone]
-        B -->|2. Client-Side EXIF / GPS Parsing| C[exifr Parser]
-        B -->|3. Request Signature| D[/api/cloudinary/sign]
+        A["Field Worker / Auditor"] -->|"1. Drop Photos / Videos"| B["Client Upload Zone"]
+        B -->|"2. Client-Side EXIF / GPS Parsing"| C["exifr Parser"]
+        B -->|"3. Request Signature"| D["/api/cloudinary/sign"]
     end
 
     subgraph Cloudinary["Cloudinary Media Ledger"]
-        D -->|4. Return HMAC Signature| B
-        B -->|5. Direct Upload multipart/form-data| E[(Cloudinary Secure Vault)]
-        E -->|6. Webhook / Ingestion Event| F[/api/webhooks/cloudinary]
+        D -->|"4. Return HMAC Signature"| B
+        B -->|"5. Direct Upload multipart/form-data"| E[("Cloudinary Secure Vault")]
+        E -->|"6. Webhook / Ingestion Event"| F["/api/webhooks/cloudinary"]
     end
 
     subgraph AI_Pipeline["Multi-Model AI Grounding"]
-        B -->|7. Trigger Ingestion| G[/api/enrich]
-        G -->|8. Grounded Visual Audit| H[Google Gemini 2.5 Flash Lite Vision]
-        G -->|9. 768-d Vector Generation| I[Gemini embedding-001]
-        H -->|Extracted JSON Contracts| J[Zod Validation Schema]
+        B -->|"7. Trigger Ingestion"| G["/api/enrich"]
+        G -->|"8. Grounded Visual Audit"| H["Google Gemini 2.5 Flash Lite Vision"]
+        G -->|"9. 768-d Vector Generation"| I["Gemini embedding-001"]
+        H -->|"Extracted JSON Contracts"| J["Zod Validation Schema"]
     end
 
     subgraph Storage["PostgreSQL + pgvector (Supabase)"]
-        G -->|10. Persist Provenance & Embeddings| K[(Supabase Database)]
-        F -.->|Async Fallback Sync| K
+        G -->|"10. Persist Provenance & Embeddings"| K[("Supabase Database")]
+        F -.->|"Async Fallback Sync"| K
     end
 
     subgraph Deliverables["Dynamic Cloudinary Derivatives"]
-        K --> L[Search & Library: Hybrid pgvector Cosine Search]
-        K --> M[Compare Studio: Interactive Split Slider & Gemini Difference Synthesis]
-        K --> N[Reports Studio: Audit Dossier & Printable Share Link]
-        K --> O[Campaign Studio: Dynamic URL Text Overlays & Social Ratios]
-        E -->|On-the-fly Dynamic Transformations| M
-        E -->|On-the-fly Dynamic Transformations| O
+        K --> L["Search & Library: Hybrid pgvector Cosine Search"]
+        K --> M["Compare Studio: Interactive Split Slider & Gemini Difference Synthesis"]
+        K --> N["Reports Studio: Audit Dossier & Printable Share Link"]
+        K --> O["Campaign Studio: Dynamic URL Text Overlays & Social Ratios"]
+        E -->|"On-the-fly Dynamic Transformations"| M
+        E -->|"On-the-fly Dynamic Transformations"| O
     end
 ```
 
@@ -202,6 +202,15 @@ erDiagram
         text executive_summary
         jsonb metrics
         string share_token UK
+        timestamp created_at
+    }
+
+    CAMPAIGN_ASSET {
+        uuid id PK
+        uuid project_id FK
+        string template
+        string headline
+        string derived_url
         timestamp created_at
     }
 ```
