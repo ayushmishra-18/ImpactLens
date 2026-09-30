@@ -531,5 +531,4 @@ Developed for **Geek Room · Problem Statement 02 (Cloudinary)**.
 ## 📄 License
 
 This project is licensed under the **MIT License**.
-#   I m p a c t L e n s  
- 
+#
