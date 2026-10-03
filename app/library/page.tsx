@@ -193,10 +193,10 @@ export default function LibraryPage() {
             <span>•</span>
             <button
               type="button"
-              onClick={() => setSearchQuery("degraded riverbank erosion")}
+              onClick={() => setSearchQuery("environmental habitat restoration")}
               className="hover:text-ink underline text-[11px]"
             >
-              &quot;degraded riverbank erosion&quot;
+              &quot;environmental habitat restoration&quot;
             </button>
           </div>
         </div>

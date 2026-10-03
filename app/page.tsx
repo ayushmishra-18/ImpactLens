@@ -77,8 +77,8 @@ export default function DashboardPage() {
   }, []);
 
   const project = statsData?.project || {
-    name: "Riverbank Restoration — Mumbai",
-    description: "Measuring afforestation, waste extraction, and biodiversity recovery.",
+    name: "Field Sustainability & Ecological Impact",
+    description: "Independent ecological monitoring, afforestation, waste extraction, and verifiable sustainability reporting.",
   };
 
   const metrics = statsData?.metrics || {
@@ -140,11 +140,13 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <span className="glass-pill flex items-center gap-1.5 text-xs text-ink-muted">
                 <MapPin className="w-3.5 h-3.5 text-accent-blue" />
-                Mithi River Corridor, Mumbai
+                {statsData?.sites && statsData.sites.length > 0
+                  ? `${statsData.sites.length} Active Monitoring Sites`
+                  : "Verified Field Monitoring Zones"}
               </span>
               <span className="glass-pill flex items-center gap-1.5 text-xs text-ink-muted">
                 <Calendar className="w-3.5 h-3.5 text-ink-muted" />
-                Jun – Oct 2026
+                2026 Audit Cycle
               </span>
               <span className="text-xs text-ink-muted">
                 {project.description || "Turn field media into verified impact proof"}

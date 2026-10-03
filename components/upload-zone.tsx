@@ -136,11 +136,17 @@ export function UploadZone() {
       setFiles((prev) => [newFileItem, ...prev]);
 
       try {
+        const selectedSite = sites.find((s) => s.id === selectedSiteId);
+        const folderSlug = selectedSite?.name
+          ? selectedSite.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+          : "evidence-vault";
+        const targetFolder = `impactlens/${folderSlug}`;
+
         // Step 1: Fetch signed upload signature from backend
         const signRes = await fetch("/api/cloudinary/sign", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ folder: "impactlens/mumbai-riverbank" }),
+          body: JSON.stringify({ folder: targetFolder }),
         });
         const signData = await signRes.json();
 

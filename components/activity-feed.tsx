@@ -52,7 +52,7 @@ export function ActivityFeed({
           type: (a.caption ? "enrichment" : "upload") as ActivityItem["type"],
           title: a.caption || `Uploaded ${a.cld_public_id.split("/").pop()}`,
           timestamp: getRelativeTime(a.created_at),
-          siteName: a.site?.name || "Mithi River Basin",
+          siteName: a.site?.name || "Field Observation Point",
           status: (a.status === "ready" ? "ready" : "processing") as ActivityItem["status"],
         }))
       : [];

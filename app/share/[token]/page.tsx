@@ -20,6 +20,8 @@ import { Asset } from "@/types";
 interface ReportData {
   id: string;
   project_id: string;
+  project_name?: string;
+  location?: string;
   title: string;
   date_from: string;
   date_to: string;
@@ -155,7 +157,7 @@ export default function PublicSharePage() {
             <div className="flex items-center gap-6 text-xs text-zinc-600 flex-wrap pt-2">
               <span className="flex items-center gap-1.5 font-medium">
                 <MapPin className="w-4 h-4 text-zinc-400" />
-                Mithi River Corridor, Mumbai, India
+                {report.location || "Verified Observation Corridor"}
               </span>
               <span className="flex items-center gap-1.5 font-medium">
                 <Calendar className="w-4 h-4 text-zinc-400" />

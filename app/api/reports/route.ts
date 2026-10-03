@@ -38,6 +38,15 @@ export async function GET() {
     const assetList = assets || [];
     const comparison = comparisons && comparisons.length > 0 ? comparisons[0] : null;
 
+    // Fetch sites for dynamic location names and site counts
+    const { data: sitesData } = await supabase
+      .from("site")
+      .select("*")
+      .order("name", { ascending: true });
+
+    const sites = sitesData || [];
+    const locationName = sites.length > 0 ? sites.map((s) => s.name).join(" • ") : "Verified Observation Corridor";
+
     if (assetList.length === 0) {
       return NextResponse.json({
         report: DEMO_REPORT,
@@ -73,23 +82,38 @@ export async function GET() {
     if (totalSaplings === 0) totalSaplings = treePlantingAssets.length * 200 + 450;
     if (totalWasteKg === 0) totalWasteKg = cleanupAssets.length * 150 + 820;
 
+    const projectName = project?.name || DEMO_PROJECT.name;
+
+    // Collect distinct detected activities for dynamic narrative
+    const distinctActivities = Array.from(
+      new Set(assetList.map((a) => a.activity).filter(Boolean))
+    ).map((act) => act.replace(/_/g, " "));
+
+    const activitySummary = distinctActivities.length > 0
+      ? `Documented interventions include verified ${distinctActivities.join(", ")}.`
+      : "Field operations span verified environmental stewardship and continuous monitoring.";
+
+    const dynamicExecutiveSummary = `During this reporting cycle, operations deployed across ${sites.length || 3} designated project zones verified tangible progress for ${projectName}. A total of ${assetList.length} field media assets have been securely vaulted in Cloudinary with tamper-evident EXIF camera telemetry and GPS coordinates, achieving a 96% verification health score. ${activitySummary} Multi-model AI analysis confirms continuous groundcover monitoring and audit-ready proof.`;
+
     const dynamicReport = {
       id: "live-report-" + Date.now(),
       project_id: project?.id || DEMO_PROJECT.id,
-      title: `${project?.name || DEMO_PROJECT.name} — Verified Progress Audit`,
+      project_name: projectName,
+      location: locationName,
+      title: `${projectName} — Verified Progress Audit`,
       date_from: project?.start_date || DEMO_PROJECT.start_date || "2026-06-01",
       date_to: project?.end_date || DEMO_PROJECT.end_date || "2026-10-31",
-      executive_summary: `Between June and October 2026, field operations deployed across the designated restoration corridor verified significant ecological recovery. A total of ${assetList.length} immutable field assets have been ingested into Cloudinary with tamper-evident EXIF and GPS coordinates, achieving a 96% verification health index. Multi-model AI analysis confirms substantial vegetative groundcover restoration and continuous plastic waste diversion.`,
+      executive_summary: dynamicExecutiveSummary,
       metrics: {
         saplingsPlanted: totalSaplings,
         wasteDivertedKg: totalWasteKg,
-        activeSitesCount: 3,
+        activeSitesCount: sites.length || 3,
         verificationRate: 96,
         totalAssetsRecorded: assetList.length,
       },
       comparison: comparison,
       evidence_assets: assetList.slice(0, 8),
-      share_token: "rep_live_mithi_2026",
+      share_token: `rep_live_${(project?.id || "audit").substring(0, 8)}`,
     };
 
     return NextResponse.json({

@@ -15,27 +15,83 @@ import {
   Server,
   ArrowRight,
   ExternalLink,
+  FolderTree,
+  Building2,
+  Save,
+  Check,
 } from "lucide-react";
 
 export default function SettingsPage() {
   const [stats, setStats] = useState<{ totalAssets: number; source: string } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Dynamic project details
+  const [projectName, setProjectName] = useState("");
+  const [projectDesc, setProjectDesc] = useState("");
+  const [projectFolder, setProjectFolder] = useState("impactlens/evidence-vault");
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [projectSaveSuccess, setProjectSaveSuccess] = useState(false);
+
   useEffect(() => {
     fetch("/api/stats")
       .then((r) => r.json())
       .then((d) => setStats({ totalAssets: d.metrics?.totalAssets || 0, source: d.source || "database" }))
       .catch((err) => console.error("Settings stats fetch error:", err));
+
+    fetch("/api/project")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.project) {
+          setProjectName(d.project.name || "Field Sustainability & Ecological Impact");
+          setProjectDesc(d.project.description || "");
+          setProjectFolder(d.project.cloudinary_folder || "impactlens/evidence-vault");
+        }
+      })
+      .catch((err) => console.error("Settings project fetch error:", err));
   }, []);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const res = await fetch("/api/stats");
-      const d = await res.json();
-      setStats({ totalAssets: d.metrics?.totalAssets || 0, source: d.source || "database" });
+      const [statsRes, projRes] = await Promise.all([
+        fetch("/api/stats").then((r) => r.json()),
+        fetch("/api/project").then((r) => r.json()),
+      ]);
+      setStats({ totalAssets: statsRes.metrics?.totalAssets || 0, source: statsRes.source || "database" });
+      if (projRes.project) {
+        setProjectName(projRes.project.name || "");
+        setProjectDesc(projRes.project.description || "");
+        setProjectFolder(projRes.project.cloudinary_folder || "impactlens/evidence-vault");
+      }
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleSaveProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingProject(true);
+    setProjectSaveSuccess(false);
+
+    try {
+      const res = await fetch("/api/project", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: projectName,
+          description: projectDesc,
+          cloudinary_folder: projectFolder,
+        }),
+      });
+
+      if (res.ok) {
+        setProjectSaveSuccess(true);
+        setTimeout(() => setProjectSaveSuccess(false), 3000);
+      }
+    } catch (err) {
+      console.error("Failed to update project:", err);
+    } finally {
+      setIsSavingProject(false);
     }
   };
 
@@ -49,14 +105,14 @@ export default function SettingsPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl md:text-2xl font-bold tracking-tight text-ink">
-                System Status & Integrations
+                System Status & Project Configuration
               </h1>
               <span className="pill pill-verified text-xs font-semibold">
                 All Services Healthy
               </span>
             </div>
             <p className="text-xs text-ink-muted mt-1">
-              Live connection telemetry for Cloudinary media vault, Supabase pgvector instance, and Gemini AI.
+              Live telemetry for Cloudinary media vault, Supabase pgvector instance, Gemini AI, and active project profile.
             </p>
           </div>
 
@@ -69,6 +125,83 @@ export default function SettingsPage() {
             <span>Refresh Health</span>
           </button>
         </header>
+
+        {/* Project Profile Editor */}
+        <div className="glass p-6 rounded-[24px]">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-accent-blue/15 text-accent-blue flex items-center justify-center">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-ink">Project Profile & Scope</h3>
+                <p className="text-xs text-ink-muted">
+                  Customizes the initiative title, description, and Cloudinary master vault folder shown across the dashboard, reports, and public share links.
+                </p>
+              </div>
+            </div>
+            {projectSaveSuccess && (
+              <span className="pill pill-verified text-xs font-semibold flex items-center gap-1.5 animate-in fade-in">
+                <Check className="w-3.5 h-3.5 text-[#17835b]" />
+                Saved to Database
+              </span>
+            )}
+          </div>
+
+          <form onSubmit={handleSaveProject} className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-ink-muted uppercase tracking-wider block mb-1.5">
+                  Project Title / Initiative Name
+                </label>
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="e.g. Amazon Rainforest Revival or Coastal Mangrove Afforestation"
+                  className="w-full bg-white/70 border border-white/80 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-accent-blue/30 shadow-inner font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-ink-muted uppercase tracking-wider block mb-1.5">
+                  Cloudinary Vault Master Folder
+                </label>
+                <input
+                  type="text"
+                  value={projectFolder}
+                  onChange={(e) => setProjectFolder(e.target.value)}
+                  placeholder="e.g. impactlens/evidence-vault"
+                  className="w-full bg-white/70 border border-white/80 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-accent-blue/30 shadow-inner font-mono text-xs"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-ink-muted uppercase tracking-wider block mb-1.5">
+                Mission Statement / Executive Description
+              </label>
+              <textarea
+                rows={2}
+                value={projectDesc}
+                onChange={(e) => setProjectDesc(e.target.value)}
+                placeholder="Briefly describe the sustainability goals, intervention scope, and community monitoring parameters..."
+                className="w-full bg-white/70 border border-white/80 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-accent-blue/30 shadow-inner leading-relaxed"
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isSavingProject}
+                className="btn-primary text-xs shadow-md flex items-center gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>{isSavingProject ? "Saving..." : "Save Project Scope"}</span>
+              </button>
+            </div>
+          </form>
+        </div>
 
         {/* Integration Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -94,7 +227,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-ink-muted">Master Folder</span>
-                  <span className="font-mono text-ink">impactlens/mumbai-riverbank</span>
+                  <span className="font-mono text-ink truncate max-w-[180px]">{projectFolder}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-ink-muted">Signed Delivery</span>

@@ -23,7 +23,7 @@ export default function UploadPage() {
               </span>
             </div>
             <p className="text-xs text-ink-muted mt-1">
-              Destination: <code className="bg-white/60 px-1.5 py-0.5 rounded font-mono text-[11px]">impactlens/mumbai-riverbank</code> (Immutable original vault)
+              Destination: <code className="bg-white/60 px-1.5 py-0.5 rounded font-mono text-[11px]">impactlens/evidence-vault</code> (Immutable field ledger)
             </p>
           </div>
 

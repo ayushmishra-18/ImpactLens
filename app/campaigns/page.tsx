@@ -27,8 +27,8 @@ function CampaignsContent() {
   const assetParam = searchParams.get("asset");
 
   const [template, setTemplate] = useState<TemplateType>("1:1");
-  const [headline, setHeadline] = useState("Restoration Progress Verified");
-  const [subheadline, setSubheadline] = useState("Mithi River Ecological Corridor • 96% Verified");
+  const [headline, setHeadline] = useState("Verified Sustainability Impact");
+  const [subheadline, setSubheadline] = useState("Field Observation Corridor • 96% Audit Health");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [copied, setCopied] = useState(false);
@@ -203,7 +203,7 @@ function CampaignsContent() {
                   type="text"
                   value={subheadline}
                   onChange={(e) => setSubheadline(e.target.value)}
-                  placeholder="e.g. Mithi River Ecological Corridor • 96% Verified"
+                  placeholder="e.g. Field Observation Corridor • 96% Audit Health"
                   className="bg-white/70 border border-white/80 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-accent-violet/30 shadow-inner"
                 />
               </div>

@@ -505,7 +505,7 @@ https://res.cloudinary.com/<cloud_name>/image/upload/c_fill,g_auto,w_1200,h_800/
 
 ### 2. Campaign Story Card with Text Overlay
 ```text
-https://res.cloudinary.com/<cloud_name>/image/upload/w_1080,h_1920,c_fill,g_auto/l_text:Arial_38_bold:Restoration%20Verified,g_south_west,x_50,y_100,co_rgb:FFFFFF/l_text:Arial_22:Mithi%20River%20Corridor,g_south_west,x_50,y_50,co_rgb:D3DEEA/<public_id>
+https://res.cloudinary.com/<cloud_name>/image/upload/w_1080,h_1920,c_fill,g_auto/l_text:Arial_38_bold:Restoration%20Verified,g_south_west,x_50,y_100,co_rgb:FFFFFF/l_text:Arial_22:Field%20Observation%20Zone,g_south_west,x_50,y_50,co_rgb:D3DEEA/<public_id>
 ```
 - **`w_1080,h_1920`**: Formats directly for 9:16 mobile stories.
 - **`l_text:...`**: Adds dynamic typography without rasterizing or generating new files on disk.

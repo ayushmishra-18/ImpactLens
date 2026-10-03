@@ -57,7 +57,7 @@ async function main() {
       ? ["mangroves", "restoration", "saplings", "soil stabilization"]
       : asset.activity === "cleanup"
       ? ["cleanup", "volunteers", "plastic waste", "segregation"]
-      : ["riverbank", "erosion", "silt", "plastic pollution"];
+      : ["conservation", "ecosystem", "habitat", "environmental monitoring"];
 
     const { error: updateError } = await supabase
       .from("asset")

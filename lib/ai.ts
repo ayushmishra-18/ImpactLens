@@ -177,10 +177,10 @@ export async function analyzeFieldMedia(imageUrl: string): Promise<AIEnrichmentO
     // Graceful fallback for mock demo
     return {
       caption: "Field restoration progress with verified vegetation revival.",
-      activity: "tree_planting",
-      scene: "outdoor_riverbank",
+      activity: "environmental_monitoring",
+      scene: "outdoor_environment",
       objects: [{ label: "sapling", count: 12, confidence: 0.95 }],
-      tags: ["restoration", "mangroves", "verified_field_evidence"],
+      tags: ["restoration", "conservation", "verified_field_evidence"],
       visible_signals: ["active growth", "soil stabilization"],
     };
   }
@@ -217,7 +217,7 @@ Analyze this field photo strictly and provide a JSON response conforming to this
 {
   "caption": "Concise 1-sentence description of the verified evidence",
   "activity": "canonical_name like tree_planting, cleanup, water_testing, nursery_propagation, or site_assessment",
-  "scene": "outdoor_riverbank, urban_park, rural_farmland, etc.",
+  "scene": "outdoor_natural, urban_park, rural_farmland, forest_reserve, water_body, etc.",
   "objects": [{"label": "object_name", "count": 10, "confidence": 0.95}],
   "tags": ["tag1", "tag2", "tag3"],
   "visible_signals": ["signal1", "signal2"]
