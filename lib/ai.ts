@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { aiEnrichmentSchema, AIEnrichmentOutput } from "@/types";
 
-const geminiApiKey = process.env.GEMINI_API_KEY || "";
+const geminiApiKey = process.env.GEMINI_API_KEY?.trim() || "";
 const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
 
 /**

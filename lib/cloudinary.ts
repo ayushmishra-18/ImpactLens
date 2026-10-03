@@ -1,10 +1,14 @@
 import { v2 as cloudinary } from "cloudinary";
 
-// Configure Cloudinary server-side SDK
+// Configure Cloudinary server-side SDK with trimmed secrets (preventing trailing newline/whitespace corruption)
+const cloudNameEnv = (process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME)?.trim();
+const apiKeyEnv = process.env.CLOUDINARY_API_KEY?.trim();
+const apiSecretEnv = process.env.CLOUDINARY_API_SECRET?.trim();
+
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: cloudNameEnv,
+  api_key: apiKeyEnv,
+  api_secret: apiSecretEnv,
   secure: true,
 });
 
@@ -15,9 +19,9 @@ export { cloudinary };
  */
 export function generateSignedUploadParams(folder: string, tags: string[] = []) {
   const timestamp = Math.round(new Date().getTime() / 1000);
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const cloudName = cloudNameEnv;
+  const apiSecret = apiSecretEnv;
+  const apiKey = apiKeyEnv;
 
   if (!apiSecret || !apiKey || !cloudName) {
     throw new Error("Cloudinary environment variables are missing");
