@@ -166,13 +166,6 @@ export function IconRail() {
         >
           <Settings className="w-4 h-4" />
         </Link>
-        <Link
-          href="/settings"
-          className="w-10 h-10 rounded-full bg-accent-blue/30 border border-white/60 flex items-center justify-center text-xs font-semibold text-ink mt-2 cursor-pointer shadow-sm hover:scale-105 transition-transform"
-          title="Field Lead Profile & Settings"
-        >
-          AM
-        </Link>
       </div>
     </aside>
   );
