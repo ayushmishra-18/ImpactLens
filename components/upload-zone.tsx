@@ -223,6 +223,9 @@ export function UploadZone() {
         });
 
         const enrichData = await enrichRes.json();
+        if (!enrichRes.ok) {
+          throw new Error(enrichData.error || `AI analysis failed with HTTP ${enrichRes.status}`);
+        }
         const enrichment = enrichData.enrichment || {};
 
         // Step 4: Complete and Organized
@@ -237,12 +240,13 @@ export function UploadZone() {
                   detectedActivity: enrichment.activity || "site_assessment",
                   caption: enrichment.caption,
                   tags: enrichment.tags || ["verified"],
+                  errorMessage: undefined,
                 }
               : f
           )
         );
       } catch (err: unknown) {
-        console.error("Live upload failed:", err);
+        console.error("Live upload or analysis failed:", err);
         const msg = err instanceof Error ? err.message : "Upload error";
         setFiles((prev) =>
           prev.map((f) =>
@@ -252,6 +256,67 @@ export function UploadZone() {
           )
         );
       }
+    }
+  };
+
+  const retryAnalysis = async (fileItem: UploadingFile) => {
+    if (!fileItem.previewUrl || !fileItem.publicId) return;
+
+    setFiles((prev) =>
+      prev.map((f) =>
+        f.id === fileItem.id
+          ? { ...f, stage: "analyzing", progress: 75, errorMessage: undefined }
+          : f
+      )
+    );
+
+    try {
+      const enrichRes = await fetch("/api/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secure_url: fileItem.previewUrl,
+          public_id: fileItem.publicId,
+          site_id: selectedSiteId || undefined,
+          gps_lat: fileItem.gpsLat,
+          gps_lng: fileItem.gpsLng,
+          device: fileItem.device,
+          captured_at: fileItem.capturedAt,
+        }),
+      });
+
+      const enrichData = await enrichRes.json();
+      if (!enrichRes.ok) {
+        throw new Error(enrichData.error || `AI analysis failed with HTTP ${enrichRes.status}`);
+      }
+      const enrichment = enrichData.enrichment || {};
+
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileItem.id
+            ? {
+                ...f,
+                progress: 100,
+                stage: "organized",
+                assetId: enrichData.asset?.id,
+                detectedActivity: enrichment.activity || "site_assessment",
+                caption: enrichment.caption,
+                tags: enrichment.tags || ["verified"],
+                errorMessage: undefined,
+              }
+            : f
+        )
+      );
+    } catch (err: unknown) {
+      console.error("Retry analysis failed:", err);
+      const msg = err instanceof Error ? err.message : "Retry failed";
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileItem.id
+            ? { ...f, stage: "error", errorMessage: msg }
+            : f
+        )
+      );
     }
   };
 
@@ -449,14 +514,14 @@ export function UploadZone() {
                     className={`pill text-[11px] transition-all ${
                       file.stage === "uploading"
                         ? "pill-pending animate-pulse"
-                        : file.stage === "error"
+                        : file.stage === "error" && !file.publicId
                         ? "pill-warning"
                         : "pill-verified font-medium"
                     }`}
                   >
                     {file.stage === "uploading" ? (
                       <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : file.stage === "error" ? (
+                    ) : file.stage === "error" && !file.publicId ? (
                       <AlertCircle className="w-3 h-3" />
                     ) : (
                       <CheckCircle2 className="w-3 h-3 text-[#17835b]" />
@@ -471,6 +536,8 @@ export function UploadZone() {
                     className={`pill text-[11px] transition-all ${
                       file.stage === "analyzing"
                         ? "pill-pending animate-pulse"
+                        : file.stage === "error" && file.publicId
+                        ? "pill-warning text-red-700 bg-red-50 border-red-200"
                         : file.stage === "organized"
                         ? "pill-verified font-medium"
                         : "pill-done text-ink/40"
@@ -478,12 +545,14 @@ export function UploadZone() {
                   >
                     {file.stage === "analyzing" ? (
                       <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : file.stage === "error" && file.publicId ? (
+                      <AlertCircle className="w-3 h-3 text-red-600" />
                     ) : file.stage === "organized" ? (
                       <Sparkles className="w-3 h-3 text-[#17835b]" />
                     ) : (
                       <span className="w-3 h-3 rounded-full border border-ink/30" />
                     )}
-                    <span>Analyzing</span>
+                    <span>{file.stage === "error" && file.publicId ? "Analysis Error" : "Analyzing"}</span>
                   </div>
 
                   <span className="w-2.5 h-0.5 bg-ink/20" />
@@ -503,6 +572,19 @@ export function UploadZone() {
                     )}
                     <span>Organized</span>
                   </div>
+
+                  {/* Retry Analysis Button */}
+                  {file.stage === "error" && file.publicId && (
+                    <button
+                      type="button"
+                      onClick={() => retryAnalysis(file)}
+                      className="btn-secondary text-[11px] py-1 px-3 rounded-full flex items-center gap-1.5 shadow-sm text-accent-blue font-semibold hover:bg-white hover:scale-105 transition-all ml-1 border border-accent-blue/30"
+                      title="Retry AI analysis with Gemini Vision"
+                    >
+                      <Sparkles className="w-3 h-3 text-accent-blue" />
+                      <span>Retry AI</span>
+                    </button>
+                  )}
 
                   {/* Interactive Action Links */}
                   {file.stage === "organized" && (

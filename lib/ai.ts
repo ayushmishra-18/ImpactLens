@@ -30,20 +30,121 @@ export async function generateEmbedding(
 }
 
 /**
+ * Transforms Cloudinary URLs to high-performance, resized representations
+ * perfectly suited for Gemini Vision payload limits (under 20MB limit) and instant decoding.
+ * Also handles video URLs by grabbing a frame snapshot at second 0 as a JPEG.
+ */
+export function getOptimizedImageUrl(rawUrl: string): string {
+  if (!rawUrl || typeof rawUrl !== "string") return rawUrl;
+
+  if (rawUrl.includes("res.cloudinary.com")) {
+    if (rawUrl.includes("/video/upload/")) {
+      return rawUrl.replace("/video/upload/", "/video/upload/so_0,w_1600,c_limit,q_85,f_jpg/");
+    }
+    if (rawUrl.includes("/image/upload/")) {
+      return rawUrl.replace("/image/upload/", "/image/upload/w_1600,c_limit,q_85,f_jpg/");
+    }
+  }
+
+  return rawUrl;
+}
+
+/**
  * Robust JSON extraction helper that handles raw text, markdown blocks,
  * and surrounding explanations from LLM outputs.
  */
 function extractJson<T>(raw: string): T {
-  const trimmed = raw.trim();
+  let cleaned = raw.trim();
+  // Strip markdown code fences if present: ```json ... ``` or ``` ... ```
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
   try {
-    return JSON.parse(trimmed);
+    return JSON.parse(cleaned);
   } catch {
-    const match = trimmed.match(/\{[\s\S]*\}/);
+    const match = cleaned.match(/\{[\s\S]*\}/);
     if (match) {
       return JSON.parse(match[0]);
     }
-    throw new Error(`Unable to extract JSON from model output: ${trimmed.slice(0, 100)}...`);
+    throw new Error(`Unable to extract JSON from model output: ${cleaned.slice(0, 100)}...`);
   }
+}
+
+/**
+ * Sanitizes and normalizes the parsed LLM output to guarantee
+ * full compliance with aiEnrichmentSchema, preventing Zod validation crashes
+ * on confidence scaling, counts, or array variations.
+ */
+function sanitizeEnrichmentData(data: Record<string, unknown>): AIEnrichmentOutput {
+  const caption =
+    typeof data.caption === "string" && data.caption.trim()
+      ? data.caption.trim()
+      : "Verified field media captured for environmental audit.";
+
+  const activity =
+    typeof data.activity === "string" && data.activity.trim()
+      ? data.activity.trim().toLowerCase().replace(/\s+/g, "_")
+      : "site_assessment";
+
+  const scene =
+    typeof data.scene === "string" && data.scene.trim()
+      ? data.scene.trim().toLowerCase().replace(/\s+/g, "_")
+      : "outdoor_environment";
+
+  // Sanitize detected objects
+  let rawObjects: unknown[] = [];
+  if (Array.isArray(data.objects)) {
+    rawObjects = data.objects;
+  }
+  const objects = rawObjects.map((obj) => {
+    if (typeof obj === "string") {
+      return { label: obj, count: 1, confidence: 0.9 };
+    }
+    if (obj && typeof obj === "object") {
+      const rec = obj as Record<string, unknown>;
+      const label = typeof rec.label === "string" && rec.label.trim() ? rec.label.trim() : "feature";
+      let count = typeof rec.count === "number" ? Math.max(1, Math.round(rec.count)) : 1;
+      let confidence = typeof rec.confidence === "number" ? rec.confidence : 0.9;
+      if (confidence > 1 && confidence <= 100) {
+        confidence = confidence / 100;
+      }
+      confidence = Math.min(1, Math.max(0, confidence));
+      return { label, count, confidence };
+    }
+    return { label: "feature", count: 1, confidence: 0.85 };
+  });
+
+  // Sanitize tags
+  let tags: string[] = [];
+  if (Array.isArray(data.tags)) {
+    tags = data.tags
+      .filter((t) => typeof t === "string" && t.trim())
+      .map((t) => String(t).trim());
+  } else if (typeof data.tags === "string") {
+    tags = (data.tags as string)
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+  }
+  if (tags.length === 0) {
+    tags = ["field_evidence", "verified"];
+  }
+
+  // Sanitize visible_signals
+  let visible_signals: string[] | undefined = undefined;
+  if (Array.isArray(data.visible_signals)) {
+    visible_signals = data.visible_signals
+      .filter((s) => typeof s === "string" && s.trim())
+      .map((s) => String(s).trim());
+  }
+
+  return {
+    caption,
+    activity,
+    scene,
+    objects,
+    tags,
+    ...(visible_signals && visible_signals.length > 0 ? { visible_signals } : {}),
+  };
 }
 
 /**
@@ -85,10 +186,24 @@ export async function analyzeFieldMedia(imageUrl: string): Promise<AIEnrichmentO
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash-lite",
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      },
+    });
 
-    // Fetch the image buffer and convert to base64
-    const response = await fetch(imageUrl);
+    // Transform Cloudinary URL to optimized thumbnail to prevent 20MB payload limit & latency
+    const targetUrl = getOptimizedImageUrl(imageUrl);
+
+    // Fetch the image buffer and convert to base64 with a 15-second timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(targetUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
     if (!response.ok) {
       throw new Error(`Failed to fetch image from Cloudinary: ${response.status} ${response.statusText}`);
     }
@@ -107,7 +222,6 @@ Analyze this field photo strictly and provide a JSON response conforming to this
   "tags": ["tag1", "tag2", "tag3"],
   "visible_signals": ["signal1", "signal2"]
 }
-Output strictly the JSON object without markdown formatting or codeblocks.
 `;
 
     const result = await model.generateContent([
@@ -115,14 +229,15 @@ Output strictly the JSON object without markdown formatting or codeblocks.
       {
         inlineData: {
           data: base64Data,
-          mimeType,
+          mimeType: mimeType.startsWith("image/") ? mimeType : "image/jpeg",
         },
       },
     ]);
 
     const text = result.response.text();
     const parsed = extractJson<Record<string, unknown>>(text);
-    return aiEnrichmentSchema.parse(parsed);
+    const sanitized = sanitizeEnrichmentData(parsed);
+    return aiEnrichmentSchema.parse(sanitized);
   } catch (error) {
     console.error("Gemini Vision analysis error:", error);
     return {
@@ -151,11 +266,20 @@ export async function synthesizeBeforeAfter(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash-lite",
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      },
+    });
+
+    const optBeforeUrl = getOptimizedImageUrl(beforeImageUrl);
+    const optAfterUrl = getOptimizedImageUrl(afterImageUrl);
 
     const [beforeRes, afterRes] = await Promise.all([
-      fetch(beforeImageUrl),
-      fetch(afterImageUrl),
+      fetch(optBeforeUrl),
+      fetch(optAfterUrl),
     ]);
 
     if (!beforeRes.ok || !afterRes.ok) {
@@ -204,3 +328,4 @@ Output strictly JSON:
     };
   }
 }
+

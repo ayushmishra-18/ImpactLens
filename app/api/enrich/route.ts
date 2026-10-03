@@ -3,10 +3,10 @@ import { analyzeFieldMedia, generateEmbedding, buildEmbeddingDocument } from "@/
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { cloudinary } from "@/lib/cloudinary";
 
-// Simple in-memory rate limiter (per-IP, 10 requests/minute)
+// In-memory rate limiter (relaxed for development and multi-file batch uploads)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_MAX = process.env.NODE_ENV === "production" ? 60 : 300;
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
@@ -41,15 +41,22 @@ function parseGpsCoordinate(coordStr?: string, ref?: string): number | null {
 
 /**
  * Verifies that a Cloudinary public_id actually exists in the account and extracts EXIF metadata.
- * Prevents abuse where arbitrary URLs are submitted for Gemini processing.
+ * Prevents abuse while being resilient to Admin API rate limits and indexing replication lags.
  */
 async function verifyCloudinaryAsset(
   publicId: string,
+  secureUrl?: string,
   resourceType: string = "image"
 ): Promise<{ isValid: boolean; resource?: Record<string, unknown> }> {
   // If Cloudinary secrets are not present, permit local development/mock uploads
   if (!process.env.CLOUDINARY_API_SECRET || !process.env.CLOUDINARY_API_KEY) {
     return { isValid: true };
+  }
+
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  if (cloudName && secureUrl && !secureUrl.includes(`res.cloudinary.com/${cloudName}/`)) {
+    console.warn("Rejecting enrichment: URL does not belong to authorized Cloudinary cloud:", secureUrl);
+    return { isValid: false };
   }
 
   try {
@@ -65,7 +72,11 @@ async function verifyCloudinaryAsset(
     }
     return { isValid: false };
   } catch (err) {
-    console.error("Cloudinary resource verification error:", err);
+    console.warn("Cloudinary resource verification API call warning (possible rate limit or indexing lag):", err);
+    // If Admin API is throttled or lagging, but URL matches our authenticated cloud name, permit enrichment
+    if (cloudName && secureUrl && secureUrl.includes(`res.cloudinary.com/${cloudName}/`)) {
+      return { isValid: true };
+    }
     return { isValid: false };
   }
 }
@@ -78,7 +89,7 @@ export async function POST(req: Request) {
 
     if (isRateLimited(ip)) {
       return NextResponse.json(
-        { error: "Rate limit exceeded. Maximum 10 enrichment requests per minute." },
+        { error: `Rate limit exceeded. Maximum ${RATE_LIMIT_MAX} requests per minute.` },
         { status: 429 }
       );
     }
@@ -112,7 +123,7 @@ export async function POST(req: Request) {
     }
 
     // Security: Verify the public_id exists in our Cloudinary account
-    const verification = await verifyCloudinaryAsset(public_id, resource_type);
+    const verification = await verifyCloudinaryAsset(public_id, secure_url, resource_type);
     if (!verification.isValid) {
       return NextResponse.json(
         { error: "Asset not found in Cloudinary. Enrichment rejected." },
